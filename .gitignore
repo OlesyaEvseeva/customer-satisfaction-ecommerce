@@ -1,3 +1,6 @@
+# Data folder
+data/
+
 # Python virtual environment
 .venv/
 venv/
