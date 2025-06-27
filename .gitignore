@@ -1,8 +1,8 @@
 # Data folder
 data/
 
-# Playground notebooks
-notebooks/playground/
+# Supportive folder (playground notebook, reference for markdown, ideas etc.)
+supportive/
 
 # Python virtual environment
 .venv/
