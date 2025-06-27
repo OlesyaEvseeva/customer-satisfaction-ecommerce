@@ -2,4 +2,4 @@
 
 **Data Schema:**
 
-![data schema](supportive/images/data_schema.png)
+![data schema](images/data_schema.png)
