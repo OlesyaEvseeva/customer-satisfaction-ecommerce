@@ -1,6 +1,9 @@
 # Data folder
 data/
 
+# Playground notebooks
+notebooks/playground/
+
 # Python virtual environment
 .venv/
 venv/
