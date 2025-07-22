@@ -415,3 +415,156 @@ def plot_review_score_by_single_category(
     plt.tight_layout()
     plt.show()
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Plots AVERAGE REVIEW SCORES for one or multiple categorical variables in a grid layout.
+def plot_review_score_by_categories(
+    df,
+    columns,
+    ncols=3,
+    color=blue,
+    highlight=red,
+    rotation=0,
+    bar_orientation="bar",
+    figsize=None,
+    count_limit=None,
+):
+    """
+    Plots average review scores by categorical columns in a grid layout.
+
+    Parameters:
+    - df: DataFrame
+    - columns: list of column names to analyze
+    - ncols: number of columns in subplot grid
+    - color: bar color
+    - highlight: color for overall mean line
+    - rotation: x-axis label rotation
+    - bar_orientation: 'bar' or 'barh'
+    - figsize: overall figure size
+    - count_limit: minimum number of observations to include a category (default = None = show all)
+    """
+    overall_mean = df["review_score"].mean()
+    n = len(columns)
+
+    # Handle 1-column case
+    if n == 1:
+        fig, ax = plt.subplots(figsize=figsize if figsize else (6, 4))
+        axes = [ax]
+        nrows = 1
+        ncols = 1
+    else:
+        nrows = math.ceil(n / ncols)
+        fig, axes = plt.subplots(
+            nrows=nrows,
+            ncols=ncols,
+            figsize=figsize if figsize else (6 * ncols, 4 * nrows),
+        )
+        axes = axes.flatten()
+
+    for i, col in enumerate(columns):
+        ax = axes[i]
+
+        df_filtered = df.copy()
+
+        # Filter by count_limit if specified
+        if count_limit is not None:
+            valid_categories = df_filtered[col].value_counts()
+            valid_categories = valid_categories[valid_categories >= count_limit].index
+            df_filtered = df_filtered[df_filtered[col].isin(valid_categories)]
+
+        grouped = df_filtered.groupby(col, observed=True)["review_score"].mean()
+
+        if bar_orientation == "barh":
+            grouped = grouped.sort_values(ascending=False)
+
+        if bar_orientation == "bar":
+            sns.barplot(x=grouped.index, y=grouped.values, ax=ax, color=color)
+            ax.set_title(f"Avg. Review Score by {col.replace('_', ' ')}", fontsize=10)
+            ax.set_xlabel(col.replace("_", " ").title())
+            ax.set_ylabel("Average Review Score")
+            ax.tick_params(axis="x", rotation=rotation)
+            ax.set_ylim(0, 5)
+
+            for idx, val in enumerate(grouped.values):
+                ax.text(
+                    idx, val + 0.03, f"{val:.1f}", ha="center", va="bottom", fontsize=8
+                )
+
+            ax.axhline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+
+            min_distance = abs(grouped.values - overall_mean).min()
+            if overall_mean > grouped.max():
+                y_pos = overall_mean + 0.02
+                x_pos = 0.95
+                ha = "right"
+            elif min_distance < 0.03:
+                y_pos = overall_mean - 0.05
+                x_pos = 0.95
+                ha = "right"
+            else:
+                y_pos = overall_mean + 0.02
+                x_pos = 0.05
+                ha = "left"
+
+            ax.text(
+                x_pos,
+                y_pos,
+                f"Avg: {overall_mean:.1f}",
+                color=highlight,
+                ha=ha,
+                va="bottom",
+                transform=ax.get_yaxis_transform(),
+                fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
+            )
+
+        elif bar_orientation == "barh":
+            sns.barplot(
+                y=grouped.index,
+                x=grouped.values,
+                ax=ax,
+                color=color,
+                order=grouped.index,
+            )
+            ax.set_title(f"Avg. Review Score by {col.replace('_', ' ')}", fontsize=10)
+            ax.set_ylabel(col.replace("_", " ").title())
+            ax.set_xlabel("Average Review Score")
+            ax.set_xlim(0, 5)
+
+            for idx, val in enumerate(grouped.values):
+                ax.text(val + 0.03, idx, f"{val:.1f}", va="center", fontsize=8)
+
+            ax.axvline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+
+            min_distance = abs(grouped.values - overall_mean).min()
+            if overall_mean > grouped.max():
+                x_pos = overall_mean + 0.02
+                y_pos = 0.95
+                va = "top"
+            elif min_distance < 0.03:
+                x_pos = overall_mean + 0.02
+                y_pos = 0.05
+                va = "bottom"
+            else:
+                x_pos = overall_mean + 0.02
+                y_pos = 0.95
+                va = "top"
+
+            ax.text(
+                x_pos,
+                y_pos,
+                f"Avg: {overall_mean:.1f}",
+                color=highlight,
+                ha="left",
+                va=va,
+                transform=ax.get_xaxis_transform(),
+                fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
+            )
+
+    # Remove unused axes
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
