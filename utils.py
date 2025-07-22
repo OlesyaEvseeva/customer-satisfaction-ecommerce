@@ -115,3 +115,26 @@ def describe_numeric(data):
 
         print("-" * 130)
 
+# ========================================================================================================================
+# DATA MANAGEMENT HELPERS
+# ========================================================================================================================
+
+
+# Copying one or more DataFrames
+def copy_dataframes(data, exclude=None):
+    """
+    Creates a deep copy of one or more DataFrames.
+
+    Parameters:
+        data (dict): Dictionary of DataFrames.
+        exclude (list): List of keys to exclude from copying.
+
+    Returns:
+        dict: A new dictionary with copies of the DataFrames.
+    """
+    if not isinstance(data, dict):
+        raise ValueError("copy_dataframes expects a dictionary of DataFrames.")
+
+    exclude = exclude or []
+    return {name: df.copy() for name, df in data.items() if name not in exclude}
+# ------------------------------------------------------------------------------------------------------------------------
