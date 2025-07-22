@@ -138,3 +138,30 @@ def copy_dataframes(data, exclude=None):
     exclude = exclude or []
     return {name: df.copy() for name, df in data.items() if name not in exclude}
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Converting data types
+def convert_column_dtypes(data, conversion_dict):
+    """
+    Converts column data types based on a nested or flat mapping.
+
+    Parameters:
+        data (dict or pd.DataFrame): A dictionary of DataFrames or a single DataFrame.
+        conversion_dict (dict): Either a flat dictionary (for single DataFrame)
+                                or a nested dictionary {table_name: {col: dtype}}.
+
+    Notes:
+        Modifies data in place.
+    """
+    if isinstance(data, pd.DataFrame):
+        for col, dtype in conversion_dict.items():
+            if col in data.columns:
+                data[col] = data[col].astype(dtype)
+        return
+
+    for name, df in data.items():
+        if name not in conversion_dict:
+            continue
+
+        for col, dtype in conversion_dict[name].items():
+            if col in df.columns:
+                df[col] = df[col].astype(dtype)
