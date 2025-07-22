@@ -322,3 +322,96 @@ def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0):
 
     plt.tight_layout()
     plt.show()
+
+
+# ========================================================================================================================
+# REVIEW SCORE VISUALIZATION
+# ========================================================================================================================
+review_group_order = ["1-2 stars", "3-4 stars", "5 stars"]
+
+# Plot AVERAGE REVIEW SCORES for a single categorical variable.
+def plot_review_score_by_single_category(
+    df,
+    category_col,
+    label_map=None,
+    color=blue,
+    highlight=red,
+    figsize=(8, 5),
+    rotation=45,
+    count_limit=None,
+    show_values=True,
+    title=None,
+):
+    """
+    Plot average review scores for each category in a single categorical column.
+
+    Parameters:
+    - df: DataFrame
+    - category_col: the name of the categorical column
+    - label_map: dict mapping internal names to display labels (optional)
+    - color: bar color
+    - highlight: color for overall mean line
+    - figsize: figure size
+    - rotation: rotation of x-tick labels
+    - count_limit: filter categories with fewer than this number of rows (optional)
+    - show_values: whether to annotate values on bars
+    - title: chart title (optional)
+    """
+    overall_mean = df["review_score"].mean()
+
+    df_filtered = df.copy()
+    if count_limit is not None:
+        counts = df_filtered[category_col].value_counts()
+        valid_cats = counts[counts >= count_limit].index
+        df_filtered = df_filtered[df_filtered[category_col].isin(valid_cats)]
+
+    means = (
+        df_filtered.groupby(category_col)["review_score"]
+        .mean()
+        .sort_values(ascending=False)
+    )
+
+    labels = [
+        label_map.get(cat, str(cat)) if label_map else str(cat) for cat in means.index
+    ]
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    bars = ax.bar(labels, means.values, color=color, edgecolor="black")
+
+    if show_values:
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                height + 0.03,
+                f"{height:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+    ax.set_ylim(0, 5)
+    ax.set_ylabel("Average Review Score")
+    ax.set_title(
+        title
+        if title
+        else f"Average Review Score by {category_col.replace('_', ' ').title()}"
+    )
+    ax.tick_params(axis="x", rotation=rotation)
+
+    # Add overall mean line
+    ax.axhline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+    ax.text(
+        len(labels) - 0.1,
+        overall_mean + 0.02,
+        f"Avg: {overall_mean:.2f}",
+        color=highlight,
+        ha="right",
+        va="bottom",
+        fontsize=9,
+    )
+
+    plt.tight_layout()
+    plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
