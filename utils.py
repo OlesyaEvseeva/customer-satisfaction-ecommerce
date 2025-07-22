@@ -54,3 +54,38 @@ def summarize_table_shapes(data):
     display(pd.DataFrame(summary))
     return pd.DataFrame(summary)
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Column overview of a DataFrame(s)
+def column_overview(data):
+    """
+    Provides a detailed overview of each column in one or more DataFrames.
+
+    Parameters:
+        data (dict or pd.DataFrame): A dictionary of DataFrames or a single DataFrame.
+
+    Displays:
+        For each DataFrame:
+            - dtype
+            - non-null count
+            - missing value count and percentage
+            - number of unique values
+            - list of unique values
+    """
+    if isinstance(data, pd.DataFrame):
+        data = {"df": data}
+
+    for name, df in data.items():
+        print(f"{name.capitalize()}:")
+        summary = pd.DataFrame(
+            {
+                "dtype": df.dtypes,
+                "non_null": df.count(),
+                "missing_n": df.isna().sum(),
+                "missing_%": df.isna().mean() * 100,
+                "uniques_n": df.nunique(),
+                "uniques": [df[col].unique() for col in df.columns],
+            }
+        )
+        display(summary)
+        print("-" * 130)
+# ------------------------------------------------------------------------------------------------------------------------
