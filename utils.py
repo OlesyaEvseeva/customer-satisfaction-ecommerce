@@ -731,3 +731,150 @@ def plot_negative_review_share_by_categories(
     plt.tight_layout()
     plt.show()
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Plot AVERAGE SHARE OF 5-STAR REVIEWS by one or multiple categorical columns in a grid layout.
+def plot_5_star_review_share_by_categories(
+    df,
+    columns,
+    ncols=3,
+    color=blue,
+    highlight=red,
+    rotation=0,
+    bar_orientation="bar",
+    figsize=None,
+    ymax=1.0,
+    count_limit=None,
+):
+    """
+    Plots average share of 5-star reviews by categorical columns in a grid layout.
+
+    Parameters:
+    - df: DataFrame with a '5_star_review' column (1 if review_score == 5, else 0)
+    - columns: list of categorical columns to group by
+    - ncols: number of columns in subplot grid (default = 3)
+    - color: bar color (default = 'steelblue')
+    - highlight: color for average line (default = 'crimson')
+    - rotation: x-axis label rotation (only used for bar)
+    - bar_orientation: 'bar' (vertical, default) or 'barh' (horizontal)
+    - figsize: custom figure size tuple
+    - ymax: max value for y-axis (or x-axis for barh), default is 1.0 (100%)
+    - count_limit: minimum number of rows per category to include (optional)
+    """
+    overall_mean = df["5_star_review"].mean()
+    n = len(columns)
+
+    if n == 1:
+        fig, ax = plt.subplots(figsize=figsize if figsize else (6, 4))
+        axes = [ax]
+        nrows = 1
+        ncols = 1
+    else:
+        nrows = math.ceil(n / ncols)
+        fig, axes = plt.subplots(
+            nrows=nrows,
+            ncols=ncols,
+            figsize=figsize if figsize else (6 * ncols, 4 * nrows),
+        )
+        axes = axes.flatten()
+
+    for i, col in enumerate(columns):
+        ax = axes[i]
+        df_filtered = df.copy()
+
+        # Apply count filtering if specified
+        if count_limit is not None:
+            valid_categories = df_filtered[col].value_counts()
+            valid_categories = valid_categories[valid_categories >= count_limit].index
+            df_filtered = df_filtered[df_filtered[col].isin(valid_categories)]
+
+        grouped = df_filtered.groupby(col, observed=True)["5_star_review"].mean()
+
+        if bar_orientation == "barh":
+            grouped = grouped.sort_values(ascending=False)
+
+        if bar_orientation == "bar":
+            sns.barplot(
+                x=grouped.index, y=grouped.values, ax=ax, color=color, errorbar=None
+            )
+            ax.set_title(
+                f"Share of 5-Star Reviews by {col.replace('_', ' ')}", fontsize=10
+            )
+            ax.set_xlabel(col.replace("_", " ").title())
+            ax.set_ylabel("Share of 5-Star Reviews")
+            ax.tick_params(axis="x", rotation=rotation)
+            ax.set_ylim(0, ymax)
+            ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+
+            for idx, val in enumerate(grouped.values):
+                ax.text(
+                    idx, val + 0.01, f"{val:.1%}", ha="center", va="bottom", fontsize=8
+                )
+
+            ax.axhline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+            min_distance = abs(grouped.values - overall_mean).min()
+            if overall_mean > grouped.max():
+                y_pos, x_pos, ha = overall_mean + 0.01, 0.95, "right"
+            elif min_distance < 0.03:
+                y_pos, x_pos, ha = overall_mean - 0.05, 0.95, "right"
+            else:
+                y_pos, x_pos, ha = overall_mean + 0.01, 0.05, "left"
+
+            ax.text(
+                x_pos,
+                y_pos,
+                f"Avg: {overall_mean:.1%}",
+                color=highlight,
+                ha=ha,
+                va="bottom",
+                transform=ax.get_yaxis_transform(),
+                fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
+            )
+
+        elif bar_orientation == "barh":
+            sns.barplot(
+                y=grouped.index,
+                x=grouped.values,
+                ax=ax,
+                color=color,
+                errorbar=None,
+                order=grouped.index,
+            )
+            ax.set_title(
+                f"Share of 5-Star Reviews by {col.replace('_', ' ')}", fontsize=10
+            )
+            ax.set_ylabel(col.replace("_", " ").title())
+            ax.set_xlabel("Share of 5-Star Reviews")
+            ax.set_xlim(0, ymax)
+            ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+
+            for idx, val in enumerate(grouped.values):
+                ax.text(val + 0.005, idx, f"{val:.1%}", va="center", fontsize=8)
+
+            ax.axvline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+            min_distance = abs(grouped.values - overall_mean).min()
+            if overall_mean > grouped.max():
+                x_pos, y_pos, va = overall_mean + 0.01, 0.95, "top"
+            elif min_distance < 0.03:
+                x_pos, y_pos, va = overall_mean + 0.01, 0.05, "bottom"
+            else:
+                x_pos, y_pos, va = overall_mean + 0.01, 0.95, "top"
+
+            ax.text(
+                x_pos,
+                y_pos,
+                f"Avg: {overall_mean:.1%}",
+                color=highlight,
+                ha="left",
+                va=va,
+                transform=ax.get_xaxis_transform(),
+                fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
+            )
+
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
