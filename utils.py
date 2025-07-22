@@ -3,6 +3,7 @@ import pandas as pd
 from IPython.display import display
 import matplotlib.pyplot as plt
 import math
+import matplotlib.ticker as mtick
 
 # ========================================================================================================================
 # CUSTOM COLORS & PALETTES
@@ -560,6 +561,168 @@ def plot_review_score_by_categories(
                 fontsize=8,
                 bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
             )
+
+    # Remove unused axes
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
+
+# Plot AVERAGE SHARE OF NEGATIVE REVIEWS by one or multiple categorical columns in a grid layout.
+def plot_negative_review_share_by_categories(
+    df,
+    columns,
+    ncols=3,
+    color=blue,
+    highlight=red,
+    rotation=0,
+    bar_orientation="bar",
+    figsize=None,
+    ymax=1.0,
+    count_limit=None,
+):
+    """
+    Plots average share of negative reviews by categorical columns in a grid layout.
+
+    Parameters:
+    - df: DataFrame with a 'negative_review' column (1 if review_score ≤ 2, else 0)
+    - columns: list of categorical columns to group by
+    - ncols: number of columns in subplot grid (default = 3)
+    - color: bar color (default = 'steelblue')
+    - highlight: color for average line (default = 'crimson')
+    - rotation: x-axis label rotation (default = 0, only used in 'bar')
+    - bar_orientation: 'bar' (vertical) or 'barh' (horizontal)
+    - figsize: custom figure size tuple
+    - ymax: y-axis maximum
+    - count_limit: minimum count of records per category to include (optional)
+    """
+    overall_mean = df["negative_review"].mean()
+    n = len(columns)
+
+    if n == 1:
+        fig, ax = plt.subplots(figsize=figsize if figsize else (6, 4))
+        axes = [ax]
+        nrows = 1
+        ncols = 1
+    else:
+        nrows = math.ceil(n / ncols)
+        fig, axes = plt.subplots(
+            nrows=nrows,
+            ncols=ncols,
+            figsize=figsize if figsize else (6 * ncols, 4 * nrows),
+        )
+        axes = axes.flatten()
+
+    for i, col in enumerate(columns):
+        ax = axes[i]
+        df_filtered = df.copy()
+
+        # Filter categories by count_limit
+        if count_limit is not None:
+            valid_categories = df_filtered[col].value_counts()
+            valid_categories = valid_categories[valid_categories >= count_limit].index
+            df_filtered = df_filtered[df_filtered[col].isin(valid_categories)]
+
+        grouped = df_filtered.groupby(col, observed=True)["negative_review"].mean()
+
+        if bar_orientation == "barh":
+            grouped = grouped.sort_values(ascending=False)
+
+        if bar_orientation == "bar":
+            sns.barplot(x=grouped.index, y=grouped.values, ax=ax, color=color)
+            ax.set_xlabel(col.replace("_", " ").title())
+            ax.set_ylabel("Share of Negative Reviews")
+            ax.tick_params(axis="x", rotation=rotation)
+            ax.set_ylim(0, ymax)
+            ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+
+            for idx, val in enumerate(grouped.values):
+                ax.text(
+                    idx, val + 0.005, f"{val:.1%}", ha="center", va="bottom", fontsize=8
+                )
+
+            ax.axhline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+
+            min_distance = abs(grouped.values - overall_mean).min()
+            if overall_mean > grouped.max():
+                y_pos = overall_mean + 0.01
+                ha = "right"
+                x_pos = 0.95
+            elif min_distance < 0.03:
+                y_pos = overall_mean - 0.05
+                ha = "right"
+                x_pos = 0.95
+            else:
+                y_pos = overall_mean + 0.01
+                ha = "left"
+                x_pos = 0.05
+
+            ax.text(
+                x_pos,
+                y_pos,
+                f"Avg: {overall_mean:.1%}",
+                color=highlight,
+                ha=ha,
+                va="bottom",
+                transform=ax.get_yaxis_transform(),
+                fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
+            )
+
+        elif bar_orientation == "barh":
+            sns.barplot(
+                y=grouped.index,
+                x=grouped.values,
+                ax=ax,
+                color=color,
+                errorbar=None,
+                order=grouped.index,
+            )
+            ax.set_ylabel(col.replace("_", " ").title())
+            ax.set_xlabel("Share of Negative Reviews")
+            ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+            ax.set_xlim(0, ymax)
+
+            for idx, val in enumerate(grouped.values):
+                ax.text(val + 0.005, idx, f"{val:.1%}", va="center", fontsize=8)
+
+            ax.axvline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+
+            if overall_mean > grouped.max():
+                ax.text(
+                    overall_mean + 0.01,
+                    0.95,
+                    f"Avg: {overall_mean:.1%}",
+                    color=highlight,
+                    ha="left",
+                    va="top",
+                    transform=ax.get_xaxis_transform(),
+                    fontsize=8,
+                    bbox=dict(
+                        boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8
+                    ),
+                )
+            else:
+                ax.text(
+                    overall_mean + 0.01,
+                    0.05,
+                    f"Avg: {overall_mean:.1%}",
+                    color=highlight,
+                    ha="left",
+                    va="bottom",
+                    transform=ax.get_xaxis_transform(),
+                    fontsize=8,
+                    bbox=dict(
+                        boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8
+                    ),
+                )
+
+        ax.set_title(
+            f"Share of Negative Reviews by {col.replace('_', ' ')}",
+            fontsize=10,
+        )
 
     # Remove unused axes
     for j in range(i + 1, len(axes)):
