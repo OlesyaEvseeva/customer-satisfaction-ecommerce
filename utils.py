@@ -165,3 +165,41 @@ def convert_column_dtypes(data, conversion_dict):
         for col, dtype in conversion_dict[name].items():
             if col in df.columns:
                 df[col] = df[col].astype(dtype)
+
+# ========================================================================================================================
+# EDA HELPERS
+# ========================================================================================================================
+
+
+# Show a table with absolute and relative value counts for a column.
+def show_value_counts(df, column, sort="count", top_n=None):
+    """
+    Returns a DataFrame with absolute and relative value counts
+    for a specific column in a DataFrame.
+
+    Parameters:
+        df (pd.DataFrame): The DataFrame containing the column.
+        column (str): The name of the column to analyze.
+        sort (str): How to sort values — "count" (default), "index", or "none".
+        top_n (int or None): Limit the number of categories displayed (default = None).
+
+    Returns:
+        pd.DataFrame: Table with absolute and relative counts.
+    """
+    abs_counts = df[column].value_counts(dropna=False)
+    rel_counts = df[column].value_counts(normalize=True, dropna=False) * 100
+
+    if sort == "count":
+        abs_counts = abs_counts.sort_values(ascending=False)
+    elif sort == "index":
+        abs_counts = abs_counts.sort_index()
+
+    rel_counts = rel_counts[abs_counts.index]
+
+    result = pd.DataFrame({"Count": abs_counts, "Relative (%)": rel_counts.round(2)})
+
+    if top_n is not None:
+        result = result.head(top_n)
+
+    return result
+# ------------------------------------------------------------------------------------------------------------------------
