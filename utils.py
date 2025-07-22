@@ -1,6 +1,7 @@
 import seaborn as sns
 import pandas as pd
 from IPython.display import display
+import matplotlib.pyplot as plt
 
 # ========================================================================================================================
 # CUSTOM COLORS & PALETTES
@@ -203,3 +204,73 @@ def show_value_counts(df, column, sort="count", top_n=None):
 
     return result
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Plot a bar chart of value counts for a specific column.
+def plot_value_counts(
+    df,
+    column,
+    sort="count",
+    top_n=None,
+    bar_orientation="bar",
+    figsize=(6, 4),
+    tick_fontsize=8,
+    color=blue,
+):
+    """
+    Plots a bar chart of value counts for a specific column.
+
+    Parameters:
+        df (pd.DataFrame): The DataFrame containing the column.
+        column (str): The name of the column to analyze.
+        sort (str): How to sort values — "count" (default), "index", or "none".
+        top_n (int or None): Limit the number of categories displayed (default = None).
+        bar_orientation (str): "bar" for vertical bars (default), "barh" for horizontal bars.
+        figsize (tuple): Size of the plot (width, height). Default is (6, 4).
+        tick_fontsize (int): Size of the x and y tick font. Default is 8.
+    """
+
+    result = show_value_counts(df, column, sort=sort, top_n=top_n)
+
+    # Reverse for barh to show highest at the top
+    if bar_orientation == "barh":
+        result = result[::-1]
+
+    ax = result["Count"].plot(
+        kind=bar_orientation,  # type: ignore
+        figsize=figsize,
+        title=f"Counts for '{column}'",
+        color=color,
+    )
+    ax.set_axisbelow(True)
+    ax.tick_params(axis="x", labelsize=tick_fontsize)
+    ax.tick_params(axis="y", labelsize=tick_fontsize)
+
+    if bar_orientation == "bar":
+        plt.xlabel(column)
+        plt.ylabel("Count")
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        for i, (count, pct) in enumerate(zip(result["Count"], result["Relative (%)"])):
+            ax.text(
+                i,
+                count + max(result["Count"]) * 0.01,
+                f"{pct:.1f}%",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+    elif bar_orientation == "barh":
+        plt.ylabel(column)
+        plt.xlabel("Count")
+        for i, (count, pct) in enumerate(zip(result["Count"], result["Relative (%)"])):
+            ax.text(
+                count + max(result["Count"]) * 0.01,
+                i,
+                f"{pct:.1f}%",
+                va="center",
+                fontsize=8,
+            )
+
+    plt.grid(axis="y" if bar_orientation == "bar" else "x", linestyle="--")
+    plt.tight_layout()
+    plt.show()
+# -----------------------------------------------------------------------------------------------------------------------------
