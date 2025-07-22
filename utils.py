@@ -878,3 +878,119 @@ def plot_5_star_review_share_by_categories(
     plt.tight_layout()
     plt.show()
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Plots a GROUPED BAR CHART showing AVERAGE REVIEW SCORES for binary features (e.g., Yes/No).
+# Groups are spaced out horizontally, with bars for 0 and 1 side-by-side and labeled.
+# Adds an overall average line, value annotations, and custom group labels.
+def plot_grouped_review_scores_binary(
+    df,
+    binary_cols,
+    group_labels=None,
+    color=blue,
+    highlight=red,
+    figsize=(8, 5),
+    bar_width=0.45,  # wider bars
+    bar_spacing=0.2,  # less space between "No" and "Yes"
+    group_spacing=1.6,
+    group_label_offset=-0.10,  # tighter spacing between groups
+    show_values=True,
+    title="Average Review Score",
+):
+    """
+    Plot grouped (non-stacked) bar chart of average review scores by binary features.
+
+    Parameters:
+    - df: DataFrame
+    - binary_cols: list of binary columns (0/1)
+    - group_labels: dict mapping col names to display names
+    - color: bar color
+    - highlight: color for mean line + text
+    - figsize: tuple
+    - bar_width: width of each bar
+    - bar_spacing: horizontal distance between bars in a group
+    - group_spacing: horizontal distance between groups
+    - show_values: whether to annotate values
+    - title: title of the plot
+    """
+    overall_mean = df["review_score"].mean()
+    fig, ax = plt.subplots(figsize=figsize)
+
+    x_ticks = []
+    x_tick_labels = []
+    group_centers = []
+
+    for idx, col in enumerate(binary_cols):
+        means = df.groupby(df[col])["review_score"].mean().sort_index()  # 0 then 1
+        x_center = idx * group_spacing
+
+        xpos_no = x_center - bar_spacing / 2
+        xpos_yes = x_center + bar_spacing / 2
+
+        bars = ax.bar(
+            [xpos_no, xpos_yes],
+            means.values,
+            width=bar_width,
+            color=color,
+            edgecolor="black",
+        )
+
+        if show_values:
+            for bar in bars:
+                height = bar.get_height()
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    height + 0.03,
+                    f"{height:.2f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
+
+        # Tick labels under each bar
+        x_ticks += [xpos_no, xpos_yes]
+        x_tick_labels += ["No", "Yes"]
+
+        # Group label centered between No and Yes
+        group_label = (
+            group_labels.get(col, col.replace("_", " ").title())
+            if group_labels
+            else col
+        )
+        group_centers.append((x_center, group_label))
+
+    # Set tick labels
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(x_tick_labels, fontsize=10)
+
+    # Add group labels below ticks, closer to No/Yes
+    for x, label in group_centers:
+        ax.text(
+            x,
+            group_label_offset,
+            label,
+            ha="center",
+            va="top",
+            fontsize=10,
+            transform=ax.get_xaxis_transform(),
+        )
+
+    ax.set_ylim(0, 5)
+    ax.set_ylabel("Average Review Score")
+    ax.set_title(title)
+
+    # Add mean line
+    ax.axhline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+    ax.text(
+        x_ticks[-1] + 0.4,
+        overall_mean + 0.02,
+        f"Avg: {overall_mean:.2f}",
+        color=highlight,
+        ha="right",
+        va="bottom",
+        fontsize=9,
+        # bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
+    )
+
+    plt.tight_layout()
+    plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
