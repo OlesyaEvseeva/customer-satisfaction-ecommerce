@@ -89,3 +89,29 @@ def column_overview(data):
         display(summary)
         print("-" * 130)
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Descriptive statistics for numeric columns in a DataFrame(s)
+def describe_numeric(data):
+    """
+    Displays descriptive statistics for numeric columns in one or more DataFrames.
+
+    Parameters:
+        data (dict or pd.DataFrame): A dictionary of DataFrames or a single DataFrame.
+
+    Notes:
+        Skips any DataFrame without numeric columns.
+    """
+    if isinstance(data, pd.DataFrame):
+        data = {"df": data}
+
+    for name, df in data.items():
+        print(f"{name.capitalize()}:")
+        numeric_df = df.select_dtypes(include="number")
+
+        if numeric_df.empty:
+            print("No numeric columns to describe.")
+        else:
+            display(numeric_df.describe().T)
+
+        print("-" * 130)
+
