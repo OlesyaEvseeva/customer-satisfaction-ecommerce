@@ -1,4 +1,6 @@
 import seaborn as sns
+import pandas as pd
+from IPython.display import display
 
 # ========================================================================================================================
 # CUSTOM COLORS & PALETTES
@@ -16,3 +18,39 @@ duo_palette = {
     False: blue,
 }
 
+# ========================================================================================================================
+# DATA INSPECTION HELPERS
+# ========================================================================================================================
+
+# Summarize basic structure of a DataFrame(s)
+def summarize_table_shapes(data):
+    """
+    Summarizes basic shape and structure info for one or more DataFrames.
+
+    Parameters:
+        data (dict or pd.DataFrame): A dictionary of DataFrames or a single DataFrame.
+
+    Returns:
+        pd.DataFrame: A summary table with:
+            - name
+            - number of rows and columns
+            - list of column names
+            - number of duplicate rows
+    """
+    if isinstance(data, pd.DataFrame):
+        data = {"df": data}
+
+    summary = []
+    for name, df in data.items():
+        summary.append(
+            {
+                "name": name,
+                "rows": df.shape[0],
+                "columns": df.shape[1],
+                "column_names": list(df.columns),
+                "duplicates": df.duplicated().sum(),
+            }
+        )
+    display(pd.DataFrame(summary))
+    return pd.DataFrame(summary)
+# ------------------------------------------------------------------------------------------------------------------------
