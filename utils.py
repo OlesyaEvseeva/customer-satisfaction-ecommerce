@@ -994,3 +994,116 @@ def plot_grouped_review_scores_binary(
     plt.tight_layout()
     plt.show()
 # ------------------------------------------------------------------------------------------------------------------------
+
+# Plots a STACKED BAR CHART showing the distribution of REVIEW SCORE GROUPS across categories.
+# Supports percentage normalization, color customization, and optional in-bar labels.
+# Useful for comparing sentiment breakdown (e.g., positive/neutral/negative) by any categorical variable.
+def plot_stacked_review_score_groups(
+    df,
+    by,
+    group_col="review_score_group",
+    figsize=(5, 5),
+    colors=[red, yellow, green],
+    normalize=True,
+    show_pct_labels=True,
+    title="category",
+    rotation=0,
+    bar_orientation="bar",  # vertical (default) or horizontal
+    count_limit=None,  # filter low-frequency categories
+):
+    """
+    Plot a stacked bar chart of review_score_group by a categorical column.
+
+    Parameters:
+    - df: DataFrame
+    - by: column to group by (e.g., 'seller_state', 'delivery_status', etc.)
+    - group_col: the review score group column (default = 'review_score_group')
+    - figsize: size of the figure
+    - colors: list of colors for each review group (ordered to match categories)
+    - normalize: if True, show percentages; if False, show counts
+    - show_pct_labels: if True, show percentage labels inside bars
+    - title: title of the plot
+    - rotation: rotation of x-axis labels (only for vertical bars)
+    - bar_orientation: 'bar' or 'barh'
+    - count_limit: minimum number of observations per category to include
+    """
+    # Optionally filter categories by count
+    if count_limit is not None:
+        counts = df[by].value_counts()
+        valid_categories = counts[counts >= count_limit].index
+        df = df[df[by].isin(valid_categories)]
+
+    # Create crosstab
+    ct = pd.crosstab(df[by], df[group_col])
+
+    # Reorder review group columns if needed
+    expected_order = review_group_order
+    ct = ct.reindex(columns=expected_order, fill_value=0)
+
+    if normalize:
+        ct = ct.div(ct.sum(axis=1), axis=0) * 100
+
+    # Plot
+    kind = "bar" if bar_orientation == "bar" else "barh"
+    ax = ct.plot(
+        kind=kind, stacked=True, figsize=figsize, color=colors, edgecolor="black"
+    )
+
+    ax.set_title(title)
+
+    if bar_orientation == "bar":
+        ax.set_xlabel("")
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=rotation)
+        ax.set_ylabel("Percentage" if normalize else "Count")
+    else:
+        ax.set_ylabel("")
+        ax.set_xlabel("Percentage" if normalize else "Count")
+
+    ax.set_axisbelow(True)
+    ax.grid(axis="y" if bar_orientation == "bar" else "x", linestyle="--", alpha=0.6)
+
+    if normalize:
+        if bar_orientation == "bar":
+            ax.yaxis.set_major_formatter(mtick.PercentFormatter(100))
+        else:
+            ax.xaxis.set_major_formatter(mtick.PercentFormatter(100))
+
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.12),
+        ncol=len(expected_order),
+        frameon=False,
+    )
+
+    # Add % labels inside bars
+    if show_pct_labels and normalize:
+        for i, (index, row) in enumerate(ct.iterrows()):
+            cumulative = 0
+            for j, val in enumerate(row):
+                if val > 3:
+                    if bar_orientation == "bar":
+                        ax.text(
+                            i,
+                            cumulative + val / 2,
+                            f"{val:.0f}%",
+                            ha="center",
+                            va="center",
+                            fontsize=8,
+                            color="black" if j == 1 else "white",
+                        )
+                    else:
+                        ax.text(
+                            cumulative + val / 2,
+                            i,
+                            f"{val:.0f}%",
+                            va="center",
+                            ha="center",
+                            fontsize=8,
+                            color="black" if j == 1 else "white",
+                        )
+                cumulative += val
+
+    plt.tight_layout()
+    plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
+
