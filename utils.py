@@ -2,6 +2,7 @@ import seaborn as sns
 import pandas as pd
 from IPython.display import display
 import matplotlib.pyplot as plt
+import math
 
 # ========================================================================================================================
 # CUSTOM COLORS & PALETTES
@@ -274,3 +275,50 @@ def plot_value_counts(
     plt.tight_layout()
     plt.show()
 # -----------------------------------------------------------------------------------------------------------------------------
+
+# Plot a grid of countplots for multiple categorical columns
+def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0):
+    """
+    Plots countplots for a list of categorical columns in a grid layout.
+
+    Parameters:
+    - df: DataFrame
+    - columns: list of column names to plot
+    - ncols: number of columns in the subplot grid (default = 3)
+    - color: bar color for all plots (default = blue)
+    """
+    n = len(columns)
+    nrows = math.ceil(n / ncols)
+    figsize = (6 * ncols, 4 * nrows)
+
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    axes = axes.flatten()
+
+    for i, col in enumerate(columns):
+        ax = axes[i]
+        sns.countplot(data=df, x=col, ax=ax, color=color)
+
+        ax.set_title(f"Count of {col.replace('_', ' ').title()}")
+        ax.set_xlabel(col.replace("_", " ").title())
+        ax.set_ylabel("Count")
+        ax.tick_params(axis="x", rotation=rotation)
+
+        total = df[col].notna().sum()
+        for p in ax.patches:
+            count = p.get_height()
+            percent = 100 * count / total
+            ax.annotate(
+                f"{percent:.1f}%",
+                (p.get_x() + p.get_width() / 2, count),
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                fontweight="bold",
+            )
+
+    # Remove unused subplots if any
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
