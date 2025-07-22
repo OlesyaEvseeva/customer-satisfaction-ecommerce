@@ -1107,3 +1107,101 @@ def plot_stacked_review_score_groups(
     plt.show()
 # ------------------------------------------------------------------------------------------------------------------------
 
+# Plots grouped stacked bar charts of review score groups for binary features.
+# Each binary variable (e.g., is_heavy) is shown as a pair of "No"/"Yes" bars.
+# Uses clear group labeling, normalized values, and annotated percentages.
+# Ideal for comparing sentiment breakdown across multiple binary characteristics.
+def plot_grouped_stacked_review_scores(
+    df,
+    binary_cols,
+    group_col="review_score_group",
+    group_labels=None,
+    figsize=(10, 6),
+    colors=triple_palette,
+    normalize=True,
+    show_pct_labels=True,
+    title="Review Scores by Binary Features",
+):
+    expected_order = review_group_order
+    bar_width = 0.35
+    group_spacing = 0.4  # space between groups
+
+    fig, ax = plt.subplots(figsize=figsize)
+    x_positions = []
+    bar_labels = []
+    group_centers = []
+
+    xpos = 0
+    for col in binary_cols:
+        ct = pd.crosstab(df[col], df[group_col])
+        ct = ct.reindex(columns=expected_order, fill_value=0)
+
+        if normalize:
+            ct = ct.div(ct.sum(axis=1), axis=0) * 100
+
+        this_group_x = []
+
+        for val in [0, 1]:  # Explicit order: No, Yes
+            cumulative = 0
+
+            for j, grp in enumerate(expected_order):
+                height = float(ct.at[val, grp])
+                ax.bar(
+                    xpos,
+                    height,
+                    bottom=cumulative,
+                    width=bar_width,
+                    color=colors[j],
+                    edgecolor="black",
+                )
+                if show_pct_labels and normalize and height > 3:
+                    ax.text(
+                        xpos,
+                        cumulative + height / 2,
+                        f"{height:.0f}%",
+                        ha="center",
+                        va="center",
+                        fontsize=8,
+                        color="black" if j == 1 else "white",
+                    )
+                cumulative += height
+
+            x_positions.append(xpos)
+            bar_labels.append("No" if val == 0 else "Yes")
+            this_group_x.append(xpos)
+            xpos += bar_width
+
+        # Add center of group for the group label
+        group_center = sum(this_group_x) / 2
+        group_centers.append((group_center, group_labels[col] if group_labels else col))
+        xpos += group_spacing  # Add spacing between groups
+
+    # Add bar-level labels ("No"/"Yes")
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(bar_labels, fontsize=10)
+
+    # Add group-level labels below "No/Yes"
+    # Add group-level labels below bars using data coordinates
+    y_min, y_max = ax.get_ylim()
+    y_label_pos = -0.1 * y_max  # slightly below zero
+
+    for x, label in group_centers:
+        ax.text(x, y_label_pos, label, ha="center", va="top", fontsize=11)
+
+    ax.set_title(title)
+    ax.set_axisbelow(True)
+    ax.grid(axis="y", linestyle="--", alpha=0.6)
+
+    if normalize:
+        ax.yaxis.set_major_formatter(mtick.PercentFormatter(100))
+
+    ax.legend(
+        expected_order,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        ncol=len(expected_order),
+        frameon=False,
+    )
+    plt.tight_layout()
+    plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
