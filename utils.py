@@ -54,7 +54,6 @@ def summarize_table_shapes(data):
                 "duplicates": df.duplicated().sum(),
             }
         )
-    display(pd.DataFrame(summary))
     return pd.DataFrame(summary)
 # ------------------------------------------------------------------------------------------------------------------------
 
