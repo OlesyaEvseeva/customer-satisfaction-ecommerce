@@ -116,6 +116,42 @@ def describe_numeric(data):
             display(numeric_df.describe().T)
 
         print("-" * 130)
+# ------------------------------------------------------------------------------------------------------------------------
+
+# Visualize the distribution of a numeric column using boxplot, histogram, and KDE plot
+def numplots_univariate(col, data):
+    """
+    Generate univariate plots for a numeric column.
+
+    Displays three side-by-side visualizations to understand the distribution of the specified column:
+    - Boxplot: identifies spread and potential outliers
+    - Histogram: shows frequency distribution
+    - KDE (Kernel Density Estimate): shows smoothed distribution curve
+
+    Parameters:
+    - col (str): Name of the numeric column to analyze
+    - data (pd.DataFrame): DataFrame containing the column
+
+    Returns:
+    - None. Displays the plots.
+    """
+       
+    fig, ax = plt.subplots(ncols=3, figsize=(16, 4))
+
+    # Boxplot
+    sns.boxplot(data=data, y=col, ax=ax[0], color=blue)
+    ax[0].set_title(f"{col} - Boxplot")
+
+    # Histogram
+    sns.histplot(data[col].dropna(), bins=30, kde=False, ax=ax[1], color=blue)
+    ax[1].set_title(f"{col} - Histogram")
+
+    # KDE plot
+    sns.kdeplot(data[col].dropna(), ax=ax[2], color=blue)
+    ax[2].set_title(f"{col} - KDE")
+
+    plt.tight_layout()
+    plt.show()
 
 # ========================================================================================================================
 # DATA MANAGEMENT HELPERS
