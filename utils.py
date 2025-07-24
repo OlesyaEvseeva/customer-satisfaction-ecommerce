@@ -275,7 +275,7 @@ def plot_value_counts(
     ax = result["Count"].plot(
         kind=bar_orientation,  # type: ignore
         figsize=figsize,
-        title=f"Counts for '{column}'",
+        title=f"Count of {column.replace('_', ' ').title()}",
         color=color,
     )
     ax.set_axisbelow(True)
@@ -283,7 +283,7 @@ def plot_value_counts(
     ax.tick_params(axis="y", labelsize=tick_fontsize)
 
     if bar_orientation == "bar":
-        plt.xlabel(column)
+        plt.xlabel(column.replace("_", " ").title())
         plt.ylabel("Count")
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
         for i, (count, pct) in enumerate(zip(result["Count"], result["Relative (%)"])):
@@ -296,7 +296,7 @@ def plot_value_counts(
                 fontsize=8,
             )
     elif bar_orientation == "barh":
-        plt.ylabel(column)
+        plt.ylabel(column.replace("_", " ").title())
         plt.xlabel("Count")
         for i, (count, pct) in enumerate(zip(result["Count"], result["Relative (%)"])):
             ax.text(
