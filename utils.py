@@ -210,7 +210,7 @@ def convert_column_dtypes(data, conversion_dict):
 
 
 # Show a table with absolute and relative value counts for a column.
-def show_value_counts(df, column, sort="count", top_n=None):
+def show_value_counts(df, column, sort="count", top_n=None, unique_by=None):
     """
     Returns a DataFrame with absolute and relative value counts
     for a specific column in a DataFrame.
@@ -220,22 +220,33 @@ def show_value_counts(df, column, sort="count", top_n=None):
         column (str): The name of the column to analyze.
         sort (str): How to sort values — "count" (default), "index", or "none".
         top_n (int or None): Limit the number of categories displayed (default = None).
+        unique_by (str or None): If provided, counts are based on unique values
+                                 of this column per category instead of row counts.
 
     Returns:
         pd.DataFrame: Table with absolute and relative counts.
     """
+    # If unique_by is set, deduplicate by that column
+    if unique_by:
+        df = df.drop_duplicates(unique_by)
+
+    # Calculate absolute and relative counts
     abs_counts = df[column].value_counts(dropna=False)
     rel_counts = df[column].value_counts(normalize=True, dropna=False) * 100
 
+    # Apply sorting
     if sort == "count":
         abs_counts = abs_counts.sort_values(ascending=False)
     elif sort == "index":
         abs_counts = abs_counts.sort_index()
 
+    # Match order for relative counts
     rel_counts = rel_counts[abs_counts.index]
 
+    # Build result DataFrame
     result = pd.DataFrame({"Count": abs_counts, "Relative (%)": rel_counts.round(2)})
 
+    # Apply top_n filter if needed
     if top_n is not None:
         result = result.head(top_n)
 
@@ -252,7 +263,8 @@ def plot_value_counts(
     figsize=(6, 4),
     tick_fontsize=8,
     color=blue,
-    title=None
+    title=None,
+    unique_by=None,
 ):
     """
     Plots a bar chart of value counts for a specific column.
@@ -267,9 +279,10 @@ def plot_value_counts(
         tick_fontsize (int): Size of the x and y tick font. Default is 8.
         color (str): Color of the bars. Default is blue.
         title (str or None): Custom title for the plot. If None, a default title is generated.
+        unique_by (str or None): If provided, counts are based on unique values of this column.
     """
 
-    result = show_value_counts(df, column, sort=sort, top_n=top_n)
+    result = show_value_counts(df, column, sort=sort, top_n=top_n, unique_by=unique_by)
 
     # Reverse for barh to show highest at the top
     if bar_orientation == "barh":
