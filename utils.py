@@ -4,6 +4,7 @@ from IPython.display import display
 import matplotlib.pyplot as plt
 import math
 import matplotlib.ticker as mtick
+import matplotlib.colors as colors
 
 # ========================================================================================================================
 # CUSTOM COLORS & PALETTES
@@ -381,7 +382,86 @@ def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0, figsize=N
 
     plt.tight_layout()
     plt.show()
+# -----------------------------------------------------------------------------------------------------------------------------
 
+# Plot absolute and log-scaled choropleth maps of Brazilian states with state labels and leader lines for small states.
+def plot_state_share_maps(gdf, column, cmap="Blues", title_abs=None, title_log=None):
+    """
+    Plots two side-by-side choropleth maps of Brazilian states:
+    one using absolute color scaling and one using logarithmic scaling.
+    Both maps include state abbreviations and leader lines for small states.
+
+    Parameters
+    ----------
+    gdf : GeoDataFrame
+        GeoDataFrame containing state geometries and the data column to plot.
+        Must include a column 'sigla' with state abbreviations.
+    column : str
+        Name of the column in gdf to use for color mapping.
+    cmap : str, optional, default="Blues"
+        Matplotlib colormap name to use for shading the states.
+    title_abs : str, optional
+        Custom title for the absolute scale map. If None, a default title is used.
+    title_log : str, optional
+        Custom title for the log scale map. If None, a default title is used.
+
+    Returns
+    -------
+    None
+        Displays the two maps side by side with state labels.
+    """
+
+    # Default titles
+    if title_abs is None:
+        title_abs = f"Absolute Values of {column}"
+    if title_log is None:
+        title_log = f"{column} – Log Scale"
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+    # --- Absolute scale plot ---
+    gdf.plot(column=column, cmap=cmap, legend=True, edgecolor="black", ax=ax[0])
+    ax[0].set_title(title_abs)
+    ax[0].axis("off")
+
+    # --- Log scale plot ---
+    min_val = gdf[column].replace(0, float("nan")).min() / 2  # avoid log(0)
+    gdf.plot(
+        column=column,
+        cmap=cmap,
+        legend=True,
+        edgecolor="black",
+        norm=colors.LogNorm(vmin=min_val, vmax=gdf[column].max()),
+        ax=ax[1],
+    )
+    ax[1].set_title(title_log)
+    ax[1].axis("off")
+
+    # --- Annotate state abbreviations with leader lines for small states ---
+    small_states = ["DF", "SE", "AL", "RJ", "ES", "RN", "PE", "PB"]
+
+    for a in ax:
+        for idx, row in gdf.iterrows():
+            x, y = row.geometry.centroid.coords[0]
+            label = row["sigla"]
+
+            if label in small_states:
+                offset_x, offset_y = x + 4.0, y - 0.3
+                a.text(
+                    offset_x,
+                    offset_y,
+                    label,
+                    fontsize=7,
+                    ha="left",
+                    va="center",
+                    color="black",
+                )
+                a.plot([x, offset_x], [y, offset_y], color="black", linewidth=0.5)
+            else:
+                a.text(x, y, label, ha="center", va="center", fontsize=7, color="black")
+
+    plt.tight_layout()
+    plt.show()
 
 # ========================================================================================================================
 # REVIEW SCORE VISUALIZATION
