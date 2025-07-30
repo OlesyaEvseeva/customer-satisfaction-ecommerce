@@ -252,6 +252,7 @@ def plot_value_counts(
     figsize=(6, 4),
     tick_fontsize=8,
     color=blue,
+    title=None
 ):
     """
     Plots a bar chart of value counts for a specific column.
@@ -264,6 +265,8 @@ def plot_value_counts(
         bar_orientation (str): "bar" for vertical bars (default), "barh" for horizontal bars.
         figsize (tuple): Size of the plot (width, height). Default is (6, 4).
         tick_fontsize (int): Size of the x and y tick font. Default is 8.
+        color (str): Color of the bars. Default is blue.
+        title (str or None): Custom title for the plot. If None, a default title is generated.
     """
 
     result = show_value_counts(df, column, sort=sort, top_n=top_n)
@@ -272,10 +275,13 @@ def plot_value_counts(
     if bar_orientation == "barh":
         result = result[::-1]
 
+    # Use custom title if provided, otherwise default
+    plot_title = title if title else f"Count of {column.replace('_', ' ').title()}"
+
     ax = result["Count"].plot(
         kind=bar_orientation,  # type: ignore
         figsize=figsize,
-        title=f"Count of {column.replace('_', ' ').title()}",
+        title=plot_title,
         color=color,
     )
     ax.set_axisbelow(True)
