@@ -313,7 +313,7 @@ def plot_value_counts(
 # -----------------------------------------------------------------------------------------------------------------------------
 
 # Plot a grid of countplots for multiple categorical columns
-def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0):
+def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0, figsize=None):
     """
     Plots countplots for a list of categorical columns in a grid layout.
 
@@ -322,10 +322,14 @@ def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0):
     - columns: list of column names to plot
     - ncols: number of columns in the subplot grid (default = 3)
     - color: bar color for all plots (default = blue)
+    - rotation: rotation angle for x-axis labels (default = 0)
+    - figsize: tuple for figure size (optional).
+               If None, it is calculated as (6 * ncols, 4 * nrows)
     """
     n = len(columns)
     nrows = math.ceil(n / ncols)
-    figsize = (6 * ncols, 4 * nrows)
+    if figsize is None:
+        figsize = (6 * ncols, 4 * nrows)
 
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
     axes = axes.flatten()
