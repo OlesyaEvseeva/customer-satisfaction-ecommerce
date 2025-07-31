@@ -384,6 +384,49 @@ def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0, figsize=N
     plt.show()
 # -----------------------------------------------------------------------------------------------------------------------------
 
+# Annotate Brazilian states
+def annotate_states(ax_list, gdf, label_col="sigla", small_states=None):
+    """
+    Annotates Brazilian states on one or multiple matplotlib Axes.
+    Small states get offset labels with leader lines.
+
+    Parameters
+    ----------
+    ax_list : list or array of matplotlib Axes
+        Axes where annotations should be added.
+    gdf : GeoDataFrame
+        GeoDataFrame with state geometries and labels.
+    label_col : str, optional
+        Column in gdf containing state abbreviations (default is 'sigla').
+    small_states : list, optional
+        List of small state abbreviations to annotate with offset and leader lines.
+    """
+    if small_states is None:
+        small_states = ["DF", "SE", "AL", "RJ", "ES", "RN", "PE", "PB"]
+
+    for ax in ax_list:
+        for idx, row in gdf.iterrows():
+            x, y = row.geometry.centroid.coords[0]
+            label = row[label_col]
+
+            if label in small_states:
+                offset_x, offset_y = x + 4.0, y - 0.3
+                ax.text(
+                    offset_x,
+                    offset_y,
+                    label,
+                    fontsize=7,
+                    ha="left",
+                    va="center",
+                    color="black",
+                )
+                ax.plot([x, offset_x], [y, offset_y], color="black", linewidth=0.5)
+            else:
+                ax.text(
+                    x, y, label, ha="center", va="center", fontsize=7, color="black"
+                )
+# -----------------------------------------------------------------------------------------------------------------------------
+
 # Plot absolute and log-scaled choropleth maps of Brazilian states with state labels and leader lines for small states.
 def plot_state_share_maps(gdf, column, cmap="Blues", title_abs=None, title_log=None):
     """
@@ -438,27 +481,7 @@ def plot_state_share_maps(gdf, column, cmap="Blues", title_abs=None, title_log=N
     ax[1].axis("off")
 
     # --- Annotate state abbreviations with leader lines for small states ---
-    small_states = ["DF", "SE", "AL", "RJ", "ES", "RN", "PE", "PB"]
-
-    for a in ax:
-        for idx, row in gdf.iterrows():
-            x, y = row.geometry.centroid.coords[0]
-            label = row["sigla"]
-
-            if label in small_states:
-                offset_x, offset_y = x + 4.0, y - 0.3
-                a.text(
-                    offset_x,
-                    offset_y,
-                    label,
-                    fontsize=7,
-                    ha="left",
-                    va="center",
-                    color="black",
-                )
-                a.plot([x, offset_x], [y, offset_y], color="black", linewidth=0.5)
-            else:
-                a.text(x, y, label, ha="center", va="center", fontsize=7, color="black")
+    annotate_states(ax, gdf)
 
     plt.tight_layout()
     plt.show()
