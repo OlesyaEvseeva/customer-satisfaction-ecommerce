@@ -4,19 +4,20 @@ from IPython.display import display
 import matplotlib.pyplot as plt
 import math
 import matplotlib.ticker as mtick
-import matplotlib.colors as colors
+import matplotlib.colors as mcolors
 
 # ========================================================================================================================
 # CUSTOM COLORS & PALETTES
 # ========================================================================================================================
 blue = "#0A2F4F"
 yellow = "#FBC02D"
+gray = "#D7CCC8"
 red = "#B22222"
 green = "#2A712D"
 purple = "#5F1E7B"
 blue_shades = sns.light_palette(blue, n_colors=6, reverse=True, input="hex")
 color_palette = [blue, yellow, red, green, purple]
-triple_palette = [red, yellow, green]
+triple_palette = [yellow, gray, blue]
 duo_palette = {
     True: yellow,
     False: blue,
@@ -474,7 +475,7 @@ def plot_state_share_maps(gdf, column, cmap="Blues", title_abs=None, title_log=N
         cmap=cmap,
         legend=True,
         edgecolor="black",
-        norm=colors.LogNorm(vmin=min_val, vmax=gdf[column].max()),
+        norm=mcolors.LogNorm(vmin=min_val, vmax=gdf[column].max()),
         ax=ax[1],
     )
     ax[1].set_title(title_log)
@@ -489,7 +490,7 @@ def plot_state_share_maps(gdf, column, cmap="Blues", title_abs=None, title_log=N
 # ========================================================================================================================
 # REVIEW SCORE VISUALIZATION
 # ========================================================================================================================
-review_group_order = ["1-2 stars", "3-4 stars", "5 stars"]
+review_group_order = ["Negative (1-2)", "Neutral (3)", "Positive (4-5)"]
 
 # Plot AVERAGE REVIEW SCORES for a single categorical variable.
 def plot_review_score_by_single_category(
@@ -731,13 +732,14 @@ def plot_review_score_by_categories(
     plt.show()
 # ------------------------------------------------------------------------------------------------------------------------
 
-# Plot AVERAGE SHARE OF NEGATIVE REVIEWS by one or multiple categorical columns in a grid layout.
-def plot_negative_review_share_by_categories(
+# Plot AVERAGE SHARE OF REVIEW GROUP by one or multiple categorical columns in a grid layout.
+def plot_review_share_by_categories(
     df,
-    columns,
+    review_type="negative",  # "negative", "neutral", or "positive"
+    columns=None,
     ncols=3,
     color=blue,
-    highlight=red,
+    highlight=None,
     rotation=0,
     bar_orientation="bar",
     figsize=None,
@@ -745,28 +747,50 @@ def plot_negative_review_share_by_categories(
     count_limit=None,
 ):
     """
-    Plots average share of negative reviews by categorical columns in a grid layout.
+    Plots average share of a selected review group (negative, neutral, or positive)
+    by one or multiple categorical columns in a grid layout.
 
     Parameters:
-    - df: DataFrame with a 'negative_review' column (1 if review_score ≤ 2, else 0)
+    - df: DataFrame containing binary flag columns for review groups
+          ('is_negative_review', 'is_neutral_review', 'is_positive_review')
+    - review_type: 'negative', 'neutral', or 'positive' (default = 'negative')
     - columns: list of categorical columns to group by
-    - ncols: number of columns in subplot grid (default = 3)
-    - color: bar color (default = 'steelblue')
-    - highlight: color for average line (default = 'crimson')
-    - rotation: x-axis label rotation (default = 0, only used in 'bar')
+    - ncols: number of subplot columns in the grid (default = 3)
+    - color: bar color
+    - highlight: color for average line (if None, it’s chosen based on review_type)
+    - rotation: x-axis label rotation (only for vertical bars)
     - bar_orientation: 'bar' (vertical) or 'barh' (horizontal)
-    - figsize: custom figure size tuple
-    - ymax: y-axis maximum
-    - count_limit: minimum count of records per category to include (optional)
+    - figsize: custom figure size
+    - ymax: y-axis/x-axis maximum value (default = 1.0)
+    - count_limit: minimum count per category to include (optional)
     """
-    overall_mean = df["negative_review"].mean()
+
+    if columns is None:
+        raise ValueError("Please provide a list of categorical columns to plot.")
+
+    # --- Map review_type to column and label ---
+    review_map = {
+        "negative": ("is_negative_review", "Negative Reviews (1-2)", red),
+        "neutral": ("is_neutral_review", "Neutral Reviews (3)", gray),
+        "positive": ("is_positive_review", "Positive Reviews (4-5)", green),
+    }
+
+    if review_type not in review_map:
+        raise ValueError(
+            "review_type must be one of: 'negative', 'neutral', 'positive'"
+        )
+
+    flag_col, flag_label, default_highlight = review_map[review_type]
+    if highlight is None:
+        highlight = default_highlight
+
+    overall_mean = df[flag_col].mean()
     n = len(columns)
 
+    # --- Setup figure grid ---
     if n == 1:
         fig, ax = plt.subplots(figsize=figsize if figsize else (6, 4))
         axes = [ax]
-        nrows = 1
-        ncols = 1
     else:
         nrows = math.ceil(n / ncols)
         fig, axes = plt.subplots(
@@ -776,29 +800,31 @@ def plot_negative_review_share_by_categories(
         )
         axes = axes.flatten()
 
+    # --- Loop through columns ---
     for i, col in enumerate(columns):
         ax = axes[i]
         df_filtered = df.copy()
 
-        # Filter categories by count_limit
+        # Filter small categories
         if count_limit is not None:
             valid_categories = df_filtered[col].value_counts()
             valid_categories = valid_categories[valid_categories >= count_limit].index
             df_filtered = df_filtered[df_filtered[col].isin(valid_categories)]
 
-        grouped = df_filtered.groupby(col, observed=True)["negative_review"].mean()
-
+        grouped = df_filtered.groupby(col, observed=True)[flag_col].mean()
         if bar_orientation == "barh":
             grouped = grouped.sort_values(ascending=False)
 
+        # --- Vertical bars ---
         if bar_orientation == "bar":
             sns.barplot(x=grouped.index, y=grouped.values, ax=ax, color=color)
             ax.set_xlabel(col.replace("_", " ").title())
-            ax.set_ylabel("Share of Negative Reviews")
+            ax.set_ylabel(f"Share of {flag_label}")
             ax.tick_params(axis="x", rotation=rotation)
             ax.set_ylim(0, ymax)
             ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 
+            # Annotate bars
             for idx, val in enumerate(grouped.values):
                 ax.text(
                     idx, val + 0.005, f"{val:.1%}", ha="center", va="bottom", fontsize=8
@@ -806,19 +832,14 @@ def plot_negative_review_share_by_categories(
 
             ax.axhline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
 
+            # Place mean annotation smartly
             min_distance = abs(grouped.values - overall_mean).min()
             if overall_mean > grouped.max():
-                y_pos = overall_mean + 0.01
-                ha = "right"
-                x_pos = 0.95
+                y_pos, ha, x_pos = overall_mean + 0.01, "right", 0.95
             elif min_distance < 0.03:
-                y_pos = overall_mean - 0.05
-                ha = "right"
-                x_pos = 0.95
+                y_pos, ha, x_pos = overall_mean - 0.05, "right", 0.95
             else:
-                y_pos = overall_mean + 0.01
-                ha = "left"
-                x_pos = 0.05
+                y_pos, ha, x_pos = overall_mean + 0.01, "left", 0.05
 
             ax.text(
                 x_pos,
@@ -832,7 +853,8 @@ def plot_negative_review_share_by_categories(
                 bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
             )
 
-        elif bar_orientation == "barh":
+        # --- Horizontal bars ---
+        else:
             sns.barplot(
                 y=grouped.index,
                 x=grouped.values,
@@ -842,7 +864,7 @@ def plot_negative_review_share_by_categories(
                 order=grouped.index,
             )
             ax.set_ylabel(col.replace("_", " ").title())
-            ax.set_xlabel("Share of Negative Reviews")
+            ax.set_xlabel(f"Share of {flag_label}")
             ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
             ax.set_xlim(0, ymax)
 
@@ -850,40 +872,20 @@ def plot_negative_review_share_by_categories(
                 ax.text(val + 0.005, idx, f"{val:.1%}", va="center", fontsize=8)
 
             ax.axvline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
+            y_pos = 0.05 if overall_mean <= grouped.max() else 0.95
+            ax.text(
+                overall_mean + 0.01,
+                y_pos,
+                f"Avg: {overall_mean:.1%}",
+                color=highlight,
+                ha="left",
+                va="bottom" if y_pos == 0.05 else "top",
+                transform=ax.get_xaxis_transform(),
+                fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
+            )
 
-            if overall_mean > grouped.max():
-                ax.text(
-                    overall_mean + 0.01,
-                    0.95,
-                    f"Avg: {overall_mean:.1%}",
-                    color=highlight,
-                    ha="left",
-                    va="top",
-                    transform=ax.get_xaxis_transform(),
-                    fontsize=8,
-                    bbox=dict(
-                        boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8
-                    ),
-                )
-            else:
-                ax.text(
-                    overall_mean + 0.01,
-                    0.05,
-                    f"Avg: {overall_mean:.1%}",
-                    color=highlight,
-                    ha="left",
-                    va="bottom",
-                    transform=ax.get_xaxis_transform(),
-                    fontsize=8,
-                    bbox=dict(
-                        boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8
-                    ),
-                )
-
-        ax.set_title(
-            f"Share of Negative Reviews by {col.replace('_', ' ')}",
-            fontsize=10,
-        )
+        ax.set_title(f"Share of {flag_label} by {col.replace('_', ' ')}", fontsize=10)
 
     # Remove unused axes
     for j in range(i + 1, len(axes)):
@@ -893,10 +895,11 @@ def plot_negative_review_share_by_categories(
     plt.show()
 # ------------------------------------------------------------------------------------------------------------------------
 
-# Plot AVERAGE SHARE OF 5-STAR REVIEWS by one or multiple categorical columns in a grid layout.
-def plot_5_star_review_share_by_categories(
+# Plot AVERAGE SHARE OF SPECIFIC-STAR REVIEWS by one or multiple categorical columns in a grid layout.
+def plot_specific_star_review_share_by_categories(
     df,
-    columns,
+    flag_col="is_5_star_review",
+    columns=None,
     ncols=3,
     color=blue,
     highlight=red,
@@ -907,28 +910,41 @@ def plot_5_star_review_share_by_categories(
     count_limit=None,
 ):
     """
-    Plots average share of 5-star reviews by categorical columns in a grid layout.
+    Plots average share of a specified star rating (based on a binary flag column)
+    by one or multiple categorical columns in a grid layout.
 
     Parameters:
-    - df: DataFrame with a '5_star_review' column (1 if review_score == 5, else 0)
+    - df: DataFrame containing a binary flag column (1 if review belongs to that star group, else 0)
+    - flag_col: name of the binary column (default = 'is_5_star_review')
     - columns: list of categorical columns to group by
-    - ncols: number of columns in subplot grid (default = 3)
-    - color: bar color (default = 'steelblue')
-    - highlight: color for average line (default = 'crimson')
-    - rotation: x-axis label rotation (only used for bar)
-    - bar_orientation: 'bar' (vertical, default) or 'barh' (horizontal)
-    - figsize: custom figure size tuple
-    - ymax: max value for y-axis (or x-axis for barh), default is 1.0 (100%)
-    - count_limit: minimum number of rows per category to include (optional)
+    - ncols: number of subplot columns in the grid (default = 3)
+    - color: bar color (default = blue)
+    - highlight: color for average line (default = red)
+    - rotation: x-axis label rotation (only for bar plots)
+    - bar_orientation: 'bar' (vertical) or 'barh' (horizontal)
+    - figsize: custom figure size (tuple)
+    - ymax: maximum value for y-axis (or x-axis for horizontal bars)
+    - count_limit: minimum count per category to include (optional)
     """
-    overall_mean = df["5_star_review"].mean()
+
+    if columns is None:
+        raise ValueError("Please provide a list of categorical columns to plot.")
+
+    # --- infer label from flag_col ---
+    if "1_star" in flag_col:
+        flag_label = "1-Star Reviews"
+    elif "5_star" in flag_col:
+        flag_label = "5-Star Reviews"
+    else:
+        flag_label = flag_col.replace("_", " ").title()
+
+    overall_mean = df[flag_col].mean()
     n = len(columns)
 
+    # --- setup figure grid ---
     if n == 1:
         fig, ax = plt.subplots(figsize=figsize if figsize else (6, 4))
         axes = [ax]
-        nrows = 1
-        ncols = 1
     else:
         nrows = math.ceil(n / ncols)
         fig, axes = plt.subplots(
@@ -938,47 +954,54 @@ def plot_5_star_review_share_by_categories(
         )
         axes = axes.flatten()
 
+    # --- plotting loop ---
     for i, col in enumerate(columns):
         ax = axes[i]
         df_filtered = df.copy()
 
-        # Apply count filtering if specified
+        # Apply count filter if specified
         if count_limit is not None:
             valid_categories = df_filtered[col].value_counts()
             valid_categories = valid_categories[valid_categories >= count_limit].index
             df_filtered = df_filtered[df_filtered[col].isin(valid_categories)]
 
-        grouped = df_filtered.groupby(col, observed=True)["5_star_review"].mean()
+        grouped = df_filtered.groupby(col, observed=True)[flag_col].mean()
 
+        # Sort values if plotting horizontal bars
         if bar_orientation == "barh":
             grouped = grouped.sort_values(ascending=False)
 
+        # --- vertical bar plot ---
         if bar_orientation == "bar":
             sns.barplot(
                 x=grouped.index, y=grouped.values, ax=ax, color=color, errorbar=None
             )
             ax.set_title(
-                f"Share of 5-Star Reviews by {col.replace('_', ' ')}", fontsize=10
+                f"Share of {flag_label} by {col.replace('_', ' ')}", fontsize=10
             )
             ax.set_xlabel(col.replace("_", " ").title())
-            ax.set_ylabel("Share of 5-Star Reviews")
+            ax.set_ylabel(f"Share of {flag_label}")
             ax.tick_params(axis="x", rotation=rotation)
             ax.set_ylim(0, ymax)
             ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 
+            # Annotate bars
             for idx, val in enumerate(grouped.values):
                 ax.text(
                     idx, val + 0.01, f"{val:.1%}", ha="center", va="bottom", fontsize=8
                 )
 
+            # Draw average line
             ax.axhline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
-            min_distance = abs(grouped.values - overall_mean).min()
+
+            # Mean label positioning
+            min_dist = abs(grouped.values - overall_mean).min()
             if overall_mean > grouped.max():
-                y_pos, x_pos, ha = overall_mean + 0.01, 0.95, "right"
-            elif min_distance < 0.03:
-                y_pos, x_pos, ha = overall_mean - 0.05, 0.95, "right"
+                y_pos, ha, x_pos = overall_mean + 0.01, "right", 0.95
+            elif min_dist < 0.03:
+                y_pos, ha, x_pos = overall_mean - 0.05, "right", 0.95
             else:
-                y_pos, x_pos, ha = overall_mean + 0.01, 0.05, "left"
+                y_pos, ha, x_pos = overall_mean + 0.01, "left", 0.05
 
             ax.text(
                 x_pos,
@@ -992,6 +1015,7 @@ def plot_5_star_review_share_by_categories(
                 bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
             )
 
+        # --- horizontal bar plot ---
         elif bar_orientation == "barh":
             sns.barplot(
                 y=grouped.index,
@@ -1002,37 +1026,34 @@ def plot_5_star_review_share_by_categories(
                 order=grouped.index,
             )
             ax.set_title(
-                f"Share of 5-Star Reviews by {col.replace('_', ' ')}", fontsize=10
+                f"Share of {flag_label} by {col.replace('_', ' ')}", fontsize=10
             )
             ax.set_ylabel(col.replace("_", " ").title())
-            ax.set_xlabel("Share of 5-Star Reviews")
+            ax.set_xlabel(f"Share of {flag_label}")
             ax.set_xlim(0, ymax)
             ax.xaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 
+            # Annotate bars
             for idx, val in enumerate(grouped.values):
                 ax.text(val + 0.005, idx, f"{val:.1%}", va="center", fontsize=8)
 
+            # Draw average line
             ax.axvline(overall_mean, color=highlight, linestyle="--", linewidth=1.5)
-            min_distance = abs(grouped.values - overall_mean).min()
-            if overall_mean > grouped.max():
-                x_pos, y_pos, va = overall_mean + 0.01, 0.95, "top"
-            elif min_distance < 0.03:
-                x_pos, y_pos, va = overall_mean + 0.01, 0.05, "bottom"
-            else:
-                x_pos, y_pos, va = overall_mean + 0.01, 0.95, "top"
 
+            y_pos = 0.05 if overall_mean <= grouped.max() else 0.95
             ax.text(
-                x_pos,
+                overall_mean + 0.01,
                 y_pos,
                 f"Avg: {overall_mean:.1%}",
                 color=highlight,
                 ha="left",
-                va=va,
+                va="bottom" if y_pos == 0.05 else "top",
                 transform=ax.get_xaxis_transform(),
                 fontsize=8,
                 bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.8),
             )
 
+    # --- remove unused axes ---
     for j in range(i + 1, len(axes)):
         fig.delaxes(axes[j])
 
@@ -1164,58 +1185,107 @@ def plot_stacked_review_score_groups(
     by,
     group_col="review_score_group",
     figsize=(5, 5),
-    colors=[red, yellow, green],
+    colors=triple_palette,
     normalize=True,
     show_pct_labels=True,
     title="category",
     rotation=0,
     bar_orientation="bar",  # vertical (default) or horizontal
-    count_limit=None,  # filter low-frequency categories
+    count_limit=None,
+    exclude_keyword="Multiple",
+    sort="auto",  # "auto", "alphabetical", "negative", "positive", "neutral"
+    add_average=True,  # include an Average bar
 ):
     """
-    Plot a stacked bar chart of review_score_group by a categorical column.
-
-    Parameters:
-    - df: DataFrame
-    - by: column to group by (e.g., 'seller_state', 'delivery_status', etc.)
-    - group_col: the review score group column (default = 'review_score_group')
-    - figsize: size of the figure
-    - colors: list of colors for each review group (ordered to match categories)
-    - normalize: if True, show percentages; if False, show counts
-    - show_pct_labels: if True, show percentage labels inside bars
-    - title: title of the plot
-    - rotation: rotation of x-axis labels (only for vertical bars)
-    - bar_orientation: 'bar' or 'barh'
-    - count_limit: minimum number of observations per category to include
+    Plot a stacked bar chart of review_score_group by a categorical column,
+    with flexible sorting and optional Average stacked bar.
     """
-    # Optionally filter categories by count
+    # --- Filter ---
+    df_plot = df.copy()
+    if exclude_keyword:
+        df_plot = df_plot[
+            ~df_plot[by].astype(str).str.contains(exclude_keyword, case=False, na=False)
+        ]
     if count_limit is not None:
-        counts = df[by].value_counts()
-        valid_categories = counts[counts >= count_limit].index
-        df = df[df[by].isin(valid_categories)]
+        counts = df_plot[by].value_counts()
+        df_plot = df_plot[df_plot[by].isin(counts[counts >= count_limit].index)]
 
-    # Create crosstab
-    ct = pd.crosstab(df[by], df[group_col])
-
-    # Reorder review group columns if needed
-    expected_order = review_group_order
-    ct = ct.reindex(columns=expected_order, fill_value=0)
-
+    # --- Crosstab ---
+    expected_order = ["Negative (1-2)", "Neutral (3)", "Positive (4-5)"]
+    ct = pd.crosstab(df_plot[by], df_plot[group_col]).reindex(
+        columns=expected_order, fill_value=0
+    )
     if normalize:
         ct = ct.div(ct.sum(axis=1), axis=0) * 100
 
-    # Plot
+    # --- Add Average row ---
+    if add_average:
+        global_counts = (
+            df_plot[group_col].value_counts().reindex(expected_order, fill_value=0)
+        )
+        global_avg = (global_counts / global_counts.sum()) * (100 if normalize else 1)
+        avg_row = pd.DataFrame(
+            [global_avg.values], columns=expected_order, index=["AVERAGE"]
+        )
+        ct = pd.concat([ct, avg_row])
+
+    # --- Sorting ---
+    if sort.lower() in ["negative", "positive", "neutral"]:
+        target = {
+            "negative": "Negative (1-2)",
+            "positive": "Positive (4-5)",
+            "neutral": "Neutral (3)",
+        }[sort.lower()]
+        ct = ct.loc[ct[target].sort_values(ascending=False).index]
+
+    elif sort == "alphabetical":
+        ct = ct.sort_index()
+        if "AVERAGE" in ct.index:
+            ct = pd.concat(
+                [ct.drop("AVERAGE"), ct.loc[["AVERAGE"]]]
+            )  # Average always at the end
+
+    elif sort == "auto":
+        if isinstance(df[by].dtype, pd.CategoricalDtype) and df[by].dtype.ordered:
+            ordered_index = df[by].dtype.categories.tolist()
+            if "AVERAGE" in ct.index:
+                ordered_index.append("AVERAGE")
+            ct = ct.reindex(index=[i for i in ordered_index if i in ct.index])
+        else:
+            ct = ct.sort_index()
+            if "AVERAGE" in ct.index:
+                ct = pd.concat(
+                    [ct.drop("AVERAGE"), ct.loc[["AVERAGE"]]]
+                )  # Average last
+
+    # --- Plot ---
     kind = "bar" if bar_orientation == "bar" else "barh"
     ax = ct.plot(
         kind=kind, stacked=True, figsize=figsize, color=colors, edgecolor="black"
     )
 
-    ax.set_title(title)
+    # Highlight Average row with a black dashed border
+    n_segments = len(expected_order)
+    n_bars = len(ct)
+    for i in range(n_segments):
+        for j in range(n_bars):
+            idx = i * n_bars + j  # patch order = segment-major
+            patch = ax.patches[idx]
+            if ct.index[j] == "AVERAGE":
+                patch.set_edgecolor("black")  # black border
+                patch.set_linewidth(1.2)  # thicker edge
+                patch.set_linestyle((0, (4, 3)))  # dashed border
 
+    # Invert y-axis for horizontal charts
+    if bar_orientation == "barh":
+        ax.invert_yaxis()
+
+    # --- Labels and Grid ---
+    ax.set_title(title)
     if bar_orientation == "bar":
         ax.set_xlabel("")
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=rotation)
         ax.set_ylabel("Percentage" if normalize else "Count")
+        ax.set_xticklabels(ct.index, rotation=rotation)
     else:
         ax.set_ylabel("")
         ax.set_xlabel("Percentage" if normalize else "Count")
@@ -1223,12 +1293,13 @@ def plot_stacked_review_score_groups(
     ax.set_axisbelow(True)
     ax.grid(axis="y" if bar_orientation == "bar" else "x", linestyle="--", alpha=0.6)
 
+    # --- Percentage Formatter ---
     if normalize:
-        if bar_orientation == "bar":
-            ax.yaxis.set_major_formatter(mtick.PercentFormatter(100))
-        else:
-            ax.xaxis.set_major_formatter(mtick.PercentFormatter(100))
+        (ax.yaxis if bar_orientation == "bar" else ax.xaxis).set_major_formatter(
+            mtick.PercentFormatter(100)
+        )
 
+    # --- Legend ---
     ax.legend(
         loc="upper center",
         bbox_to_anchor=(0.5, -0.12),
@@ -1236,36 +1307,37 @@ def plot_stacked_review_score_groups(
         frameon=False,
     )
 
-    # Add % labels inside bars
+    # --- Add % Labels ---
     if show_pct_labels and normalize:
-        for i, (index, row) in enumerate(ct.iterrows()):
+        for j, (idx, row) in enumerate(ct.iterrows()):
             cumulative = 0
-            for j, val in enumerate(row):
+            for i, val in enumerate(row):
                 if val > 3:
                     if bar_orientation == "bar":
                         ax.text(
-                            i,
+                            j,
                             cumulative + val / 2,
-                            f"{val:.0f}%",
+                            f"{val:.1f}%",
                             ha="center",
                             va="center",
                             fontsize=8,
-                            color="black" if j == 1 else "white",
+                            color="white" if i == 2 else "black",
                         )
                     else:
                         ax.text(
                             cumulative + val / 2,
-                            i,
-                            f"{val:.0f}%",
+                            j,
+                            f"{val:.1f}%",
                             va="center",
                             ha="center",
                             fontsize=8,
-                            color="black" if j == 1 else "white",
+                            color="white" if i == 2 else "black",
                         )
                 cumulative += val
 
     plt.tight_layout()
     plt.show()
+
 # ------------------------------------------------------------------------------------------------------------------------
 
 # Plots grouped stacked bar charts of review score groups for binary features.
