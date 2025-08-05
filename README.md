@@ -173,9 +173,9 @@ project/
 ### **3. Regional Ratings**
 
    <p align="center">
-    <img src="images/regional_satisfaction_map.png" alt="Map of Review Scores" style="width:45%;">
+    <img src="images/regional_satisfaction_map.png" alt="Map of Review Scores" style="width:40%;">
     &nbsp;&nbsp; <!-- adds some space -->
-    <img src="images/customer_regions_vs_review_groups.png" alt="Regional Review Scores" width="53.16%">
+    <img src="images/customer_regions_vs_review_groups.png" alt="Regional Review Scores" width="50%">
   </p>
 
    *Lower ratings in the North and Northeast may be linked to delivery challenges and inconsistent service levels.*
