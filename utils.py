@@ -27,6 +27,7 @@ duo_palette = {
 # DATA INSPECTION HELPERS
 # ========================================================================================================================
 
+
 # Summarize basic structure of a DataFrame(s)
 def summarize_table_shapes(data):
     """
@@ -57,7 +58,10 @@ def summarize_table_shapes(data):
             }
         )
     return pd.DataFrame(summary)
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Column overview of a DataFrame(s)
 def column_overview(data):
@@ -92,7 +96,10 @@ def column_overview(data):
         )
         display(summary)
         print("-" * 130)
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Descriptive statistics for numeric columns in a DataFrame(s)
 def describe_numeric(data):
@@ -118,7 +125,10 @@ def describe_numeric(data):
             display(numeric_df.describe().T)
 
         print("-" * 130)
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Visualize the distribution of a numeric column using boxplot, histogram, and KDE plot
 def numplots_univariate(col, data):
@@ -137,7 +147,7 @@ def numplots_univariate(col, data):
     Returns:
     - None. Displays the plots.
     """
-       
+
     fig, ax = plt.subplots(ncols=3, figsize=(16, 4))
 
     # Boxplot
@@ -154,6 +164,7 @@ def numplots_univariate(col, data):
 
     plt.tight_layout()
     plt.show()
+
 
 # ========================================================================================================================
 # DATA MANAGEMENT HELPERS
@@ -177,7 +188,10 @@ def copy_dataframes(data, exclude=None):
 
     exclude = exclude or []
     return {name: df.copy() for name, df in data.items() if name not in exclude}
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Converting data types
 def convert_column_dtypes(data, conversion_dict):
@@ -205,6 +219,7 @@ def convert_column_dtypes(data, conversion_dict):
         for col, dtype in conversion_dict[name].items():
             if col in df.columns:
                 df[col] = df[col].astype(dtype)
+
 
 # ========================================================================================================================
 # EDA HELPERS
@@ -253,7 +268,10 @@ def show_value_counts(df, column, sort="count", top_n=None, unique_by=None):
         result = result.head(top_n)
 
     return result
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Plot a bar chart of value counts for a specific column.
 def plot_value_counts(
@@ -331,7 +349,10 @@ def plot_value_counts(
     plt.grid(axis="y" if bar_orientation == "bar" else "x", linestyle="--")
     plt.tight_layout()
     plt.show()
+
+
 # -----------------------------------------------------------------------------------------------------------------------------
+
 
 # Plot a grid of countplots for multiple categorical columns
 def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0, figsize=None):
@@ -383,7 +404,10 @@ def plot_countplots_grid(df, columns, ncols=3, color=blue, rotation=0, figsize=N
 
     plt.tight_layout()
     plt.show()
+
+
 # -----------------------------------------------------------------------------------------------------------------------------
+
 
 # Annotate Brazilian states
 def annotate_states(ax_list, gdf, label_col="sigla", small_states=None):
@@ -426,7 +450,10 @@ def annotate_states(ax_list, gdf, label_col="sigla", small_states=None):
                 ax.text(
                     x, y, label, ha="center", va="center", fontsize=7, color="black"
                 )
+
+
 # -----------------------------------------------------------------------------------------------------------------------------
+
 
 # Plot absolute and log-scaled choropleth maps of Brazilian states with state labels and leader lines for small states.
 def plot_state_share_maps(gdf, column, cmap="Blues", title_abs=None, title_log=None):
@@ -487,10 +514,12 @@ def plot_state_share_maps(gdf, column, cmap="Blues", title_abs=None, title_log=N
     plt.tight_layout()
     plt.show()
 
+
 # ========================================================================================================================
 # REVIEW SCORE VISUALIZATION
 # ========================================================================================================================
 review_group_order = ["Negative (1-2)", "Neutral (3)", "Positive (4-5)"]
+
 
 # Plot AVERAGE REVIEW SCORES for a single categorical variable.
 def plot_review_score_by_single_category(
@@ -577,7 +606,10 @@ def plot_review_score_by_single_category(
 
     plt.tight_layout()
     plt.show()
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Plots AVERAGE REVIEW SCORES for one or multiple categorical variables in a grid layout.
 def plot_review_score_by_categories(
@@ -730,7 +762,10 @@ def plot_review_score_by_categories(
 
     plt.tight_layout()
     plt.show()
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Plot AVERAGE SHARE OF REVIEW GROUP by one or multiple categorical columns in a grid layout.
 def plot_review_share_by_categories(
@@ -893,7 +928,10 @@ def plot_review_share_by_categories(
 
     plt.tight_layout()
     plt.show()
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Plot AVERAGE SHARE OF SPECIFIC-STAR REVIEWS by one or multiple categorical columns in a grid layout.
 def plot_specific_star_review_share_by_categories(
@@ -1059,7 +1097,10 @@ def plot_specific_star_review_share_by_categories(
 
     plt.tight_layout()
     plt.show()
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Plots a GROUPED BAR CHART showing AVERAGE REVIEW SCORES for binary features (e.g., Yes/No).
 # Groups are spaced out horizontally, with bars for 0 and 1 side-by-side and labeled.
@@ -1175,7 +1216,10 @@ def plot_grouped_review_scores_binary(
 
     plt.tight_layout()
     plt.show()
+
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Plots a STACKED BAR CHART showing the distribution of REVIEW SCORE GROUPS across categories.
 # Supports percentage normalization, color customization, and optional in-bar labels.
@@ -1338,7 +1382,9 @@ def plot_stacked_review_score_groups(
     plt.tight_layout()
     plt.show()
 
+
 # ------------------------------------------------------------------------------------------------------------------------
+
 
 # Plots grouped stacked bar charts of review score groups for binary features.
 # Each binary variable (e.g., is_heavy) is shown as a pair of "No"/"Yes" bars.
@@ -1395,7 +1441,7 @@ def plot_grouped_stacked_review_scores(
                         ha="center",
                         va="center",
                         fontsize=8,
-                        color="black" if j == 1 else "white",
+                        color="white" if j == 2 else "black",
                     )
                 cumulative += height
 
@@ -1437,4 +1483,6 @@ def plot_grouped_stacked_review_scores(
     )
     plt.tight_layout()
     plt.show()
+
+
 # ------------------------------------------------------------------------------------------------------------------------
